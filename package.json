@@ -1,0 +1,23 @@
+{
+  "name": "slack-proxy",
+  "version": "0.0.0",
+  "description": "Simple proxy between AWS SQS and Slack",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/phamann/slack-proxy.git"
+  },
+  "keywords": [
+    "slack"
+  ],
+  "author": "Patrick Hamann",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "gitHead": "c3e5d89394c2cb77705d4ec20e8dc8f85e82d115",
+  "dependencies": {
+    "express": "~3.4.8"
+  }
+}
