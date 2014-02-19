@@ -18,6 +18,8 @@
   "readmeFilename": "README.md",
   "gitHead": "c3e5d89394c2cb77705d4ec20e8dc8f85e82d115",
   "dependencies": {
-    "express": "~3.4.8"
+    "express": "~3.4.8",
+    "logfmt": "~0.21.0",
+    "q": "~1.0.0"
   }
 }
