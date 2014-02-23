@@ -6,28 +6,37 @@ var Q = require('q');
 var app = express();
 
 app.use(logfmt.requestLogger());
-app.use(express.bodyParser());
-
-function addDataToken(data) {
-    data.token = 'Lfsrcf0g6QNTM3gzhtzz4qdK';
-    return data;
-}
+app.use(express.json());
 
 function parseMessage(msg) {
-    console.log('Body: ');
-    console.log(msg);
-    return JSON.parse(msg);
+    var text = 'Deploy of {PROJECT} by {USER} has just {ACTION}. <{URL} |View here>';
+    text = text.replace('{PROJECT}', msg.project);
+    text = text.replace('{USER}', msg.deployer);
+    text = text.replace('{ACTION}', msg.adjective);
+    text = text.replace('{URL}', msg.href);
+    return text;
+}
+
+function isValidMessageType(body) {
+    if("Message" in body) {
+        var message = JSON.parse(body.Message);
+        return /^frontend::/g.test(message.project) &&
+            (message.event === "DeployCompleted" ||  message.event === "DeployStarted");
+    }
+    return false;
 }
 
 function sendMsgToSlack(msg) {
     var deferred = Q.defer();
-
-    var post_data = querystring.stringify(addDataToken(parseMessage(msg)));
+    var post_data = {
+        username: 'Riff-raff',
+        text: parseMessage(msg)
+    };
 
     var post_options = {
-        host: 'guardian-frontend.slack.com',
-        port: '80',
-        path: '/services/hooks/incoming-webhook',
+        host: process.env.SLACK_URL,
+        port: '443',
+        path: '/services/hooks/incoming-webhook?token=' + process.env.SLACK_TOKEN,
         method: 'POST'
     };
 
@@ -42,23 +51,26 @@ function sendMsgToSlack(msg) {
         deferred.reject(e);
     });
 
-    post_req.write(post_data);
+    post_req.write(JSON.stringify(post_data));
     post_req.end();
 
     return deferred.promise;
 }
 
 app.post('/send', function(req, res) {
-    console.log(req);
-    sendMsgToSlack(req.body).then(function(msg){
-        res.status(200);
-        res.set({'Content-Type': 'text/plain'});
-        res.end('SUCCESS: ' + msg);
-    }).fail(function(msg) {
-        res.status(500);
-        res.set({'Content-Type': 'text/plain'});
-        res.end('ERROR: ' + msg);
-    });
+    res.set({'Content-Type': 'text/plain'});
+    if(isValidMessageType(req.body)) {
+        sendMsgToSlack(JSON.parse(req.body.Message)).then(function(msg){
+            res.status(200);
+            res.end(msg);
+        }).fail(function(err) {
+            res.status(500);
+            res.end(err);
+        });
+    } else {
+        res.status(404);
+        res.end();
+    }
 });
 
 var port = Number(process.env.PORT || 5000);
