@@ -93,6 +93,7 @@ function sendMsgToSlack(msg) {
 }
 
 app.post('/send', function(req, res) {
+	console.log(req.body);
     res.set({'Content-Type': 'text/plain'});
     if(isValidMessageType(req.body)) {
         sendMsgToSlack(JSON.parse(req.body.Message)).then(function(msg){
