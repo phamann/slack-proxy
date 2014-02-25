@@ -1,4 +1,5 @@
 var http = require('https');
+var url = require('url');
 var querystring = require('querystring');
 var express = require('express');
 var logfmt = require('logfmt');
@@ -7,6 +8,40 @@ var app = express();
 
 app.use(logfmt.requestLogger());
 app.use(express.json());
+
+function isSubscriptionConfirmation(msg) {
+    return msg.Type === "SubscriptionConfirmation";
+}
+
+function sendConfirmation(msg) {
+    var deferred = Q.defer();
+    var confirmUrl = url.parse(msg.SubscribeURL, true);
+
+    console.log(msg.SubscribeURL);
+
+    var get_options = {
+        host: confirmUrl.host,
+        port: '443',
+        path: confirmUrl.pathname + confirmUrl.search,
+        method: 'GET'
+    };
+
+    var get_req = http.request(get_options, function(res) {
+        res.setEncoding('utf8');
+        res.on('data', function (msg) {
+            deferred.resolve(msg);
+        });
+    });
+
+    get_req.on('error', function(e) {
+        deferred.reject(e);
+    });
+
+    get_req.write('ok');
+    get_req.end();
+
+    return deferred.promise;
+}
 
 function parseMessage(msg) {
     var text = 'Deploy of {PROJECT} by {USER} has just {ACTION}. <{URL} |View here>';
@@ -18,7 +53,7 @@ function parseMessage(msg) {
 }
 
 function isValidMessageType(body) {
-    if("Message" in body) {
+    if("Message" in body &&  body.type === "Notification") {
         var message = JSON.parse(body.Message);
         return /^frontend::/g.test(message.project) &&
             (message.event === "DeployCompleted" ||  message.event === "DeployStarted");
@@ -61,6 +96,14 @@ app.post('/send', function(req, res) {
     res.set({'Content-Type': 'text/plain'});
     if(isValidMessageType(req.body)) {
         sendMsgToSlack(JSON.parse(req.body.Message)).then(function(msg){
+            res.status(200);
+            res.end(msg);
+        }).fail(function(err) {
+            res.status(500);
+            res.end(err);
+        });
+    } else if(isSubscriptionConfirmation(req.body)) {
+        sendConfirmation(req.body).then(function(msg){
             res.status(200);
             res.end(msg);
         }).fail(function(err) {
