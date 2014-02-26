@@ -7,7 +7,21 @@ var Q = require('q');
 var app = express();
 
 app.use(logfmt.requestLogger());
-app.use(express.json());
+app.use(express.methodOverride());
+
+app.use(function parsePlainTextBody(req, res, next) {
+    if (!req.is('text/plain')) {
+        return next();
+    }
+    req.body = '';
+    req.on('data', function(data) {
+        return req.body += data;
+    });
+    req.on('end', function(){
+        req.body = JSON.parse(req.body);
+        next();
+    });
+});
 
 function isSubscriptionConfirmation(msg) {
     return msg.Type === "SubscriptionConfirmation";
@@ -93,7 +107,6 @@ function sendMsgToSlack(msg) {
 }
 
 app.post('/send', function(req, res) {
-	console.log(req.body);
     res.set({'Content-Type': 'text/plain'});
     if(isValidMessageType(req.body)) {
         sendMsgToSlack(JSON.parse(req.body.Message)).then(function(msg){
