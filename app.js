@@ -69,7 +69,9 @@ function parseMessage(msg) {
 function isValidMessageType(body) {
     if("Message" in body &&  body.type === "Notification") {
         var message = JSON.parse(body.Message);
-        return /^frontend::/g.test(message.project) &&
+        var teamName = process.env.TEAM_NAME;
+        var teamNameRegExp = new RegExp('^' + teamName + '::', 'g');
+        return teamNameRegExp.test(message.project) &&
             (message.event === "DeployCompleted" ||  message.event === "DeployStarted");
     }
     return false;

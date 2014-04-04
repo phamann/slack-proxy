@@ -10,4 +10,5 @@ example:
 ```
 SLACK_URL=guardian.slack.com
 SLACK_TOKEN=dHb34auD64
+TEAM_NAME=frontend
 ```
